@@ -9,3 +9,6 @@ Pokehand Command line tester
 
 
    
+TODO::
+- Save API results to cut down on calls
+- Automate reports
