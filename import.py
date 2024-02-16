@@ -3,6 +3,7 @@ import os
 import re
 import jsonpickle
 from dotenv import load_dotenv
+from pathlib import Path
 
 from pokemontcgsdk import Card
 from pokemontcgsdk import Set
@@ -95,7 +96,7 @@ for line in inputLines:
         outputDeck.append(card)
         
                
-with open(filename+"_output.txt","w") as outputFile:
+with open(Path(filename).stem+"_output.txt","w") as outputFile:
     for line in outputDeck:
         outputFile.write(jsonpickle.encode(line) + "\n") # works with any number of elements in a line
 
