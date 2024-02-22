@@ -12,9 +12,12 @@ from pokemontcgsdk import Supertype
 from pokemontcgsdk import Subtype
 from pokemontcgsdk import Rarity
 from pokemontcgsdk import RestClient
+from db_functions import *
+
 
 
 load_dotenv()
+
 
 RestClient.configure(os.getenv('POKEMONTCG_IO_API_KEY')) 
 
@@ -30,22 +33,43 @@ RestClient.configure(os.getenv('POKEMONTCG_IO_API_KEY'))
 # 5. For each card in array call API to get card details
 # 6. Using card details build text file to copy paste into decks.py
 
+if(len(sys.argv) < 3):
+    print("Program Input: import.py (fileName) (deckName)")
+    sys.exit(-1)
+
 def getSetIdForCode(code):
+    
+    existingSet = findSetForCode(code)
+    
+    if existingSet and len(existingSet) > 0:
+        return existingSet
+    
     sets = Set.where(q='ptcgoCode:"'+code+'"')
     if "swsh12pt5gg" in sets[0].id or "swsh11tg" in sets[0].id:
-        return sets[1]
+        insertSet(sets[1])
+        return sets[1].id
     else:
-        return sets[0]
+        insertSet(sets[0])
+        return sets[0].id
 
 def getCardForSetIdAndSetNum(setId, setNum):
-    print("setID: (" + setId + ") setNum: ("+setNum+")")
-    cards = Card.where(q='set.id:'+setId+' number:'+setNum)
-    return cards[0]
+    outputCard = findCardBySetIdAndNum(setId, setNum)
+    
+    if(outputCard is None):
+        outputCard = Card.where(q='set.id:'+setId+' number:'+setNum)[0]
+        insertCard(outputCard)
+        
+    return outputCard
 
 def getEnergyCardByNameAndNumber(name, setNum):
-    print("Name: " + name + " setNum: " + setNum)
-    cards = Card.where(q='name:"' + name + '" number:'+setNum)
-    return cards[0]
+    outputCard = findCardByNameAndNum(name, setNum)
+    
+    if(outputCard is None):
+        outputCard = Card.where(q='name:"' + name + '" number:'+setNum)[0]
+        insertCard(outputCard)
+
+    return outputCard
+   
 
 filename = sys.argv[1]
 
@@ -59,6 +83,19 @@ sets = {}
 
 outputDeck = []
 
+# Insert Deck
+deckName = sys.argv[2]
+deckObj = getDeckByName(deckName)
+
+if deckObj is None:
+    deckObj = insertDeck(deckName)
+    
+    
+deckId = deckObj['id']
+    
+
+
+
 numCardsRegPattern = r'^[^\d]*(\d+)'
 cardNameRegPattern = r'(?![0-9]+)(?! )(.*)(?= [A-Z]{3})'
 setPTCGOCodePattern = r'(?! )[A-Z]{3}(?= [0-9])'
@@ -70,8 +107,6 @@ for line in inputLines:
     if "Pokemon - " in line or "Trainer - " in line or "Energy - " in line:
         continue
     
-    
-    print(line)
     numOfCards = re.findall(numCardsRegPattern, line)[0]
     cardName = ""
     setPTCGOCode = ""
@@ -82,15 +117,22 @@ for line in inputLines:
     if not re.findall(basicEnergyPattern, line):
         cardName = re.findall(cardNameRegPattern, line)[0]
         setPTCGOCode = re.findall(setPTCGOCodePattern, line)[0]
-        print("Name: " + cardName + ", Code: " + setPTCGOCode + ", setNum: " + cardSetNum)
 
         if setPTCGOCode not in sets:
-            sets[setPTCGOCode] = getSetIdForCode(setPTCGOCode).id
-
+            sets[setPTCGOCode] = getSetIdForCode(setPTCGOCode)
+            
         card = getCardForSetIdAndSetNum(sets[setPTCGOCode], cardSetNum)
     else:
         cardName = re.findall(basicEnergyPattern, line)[0]
         card = getEnergyCardByNameAndNumber(cardName, cardSetNum)
+    
+    
+    # Insert into Card Deck
+    
+    if isinstance(card, Card):
+        insertCardIntoDeck(deckId, card.id, numOfCards)
+    else:
+        insertCardIntoDeck(deckId, card['id'], numOfCards)
     
     for num in range(int(numOfCards)):
         outputDeck.append(card)

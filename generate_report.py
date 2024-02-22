@@ -4,8 +4,8 @@ import jsonpickle
 import json
 import xlsxwriter
 from pathlib import Path
-
-from pokemontcgsdk import Card
+from db_functions import *
+from datetime import datetime
 
 def generateHand(deck):
     hand = []
@@ -23,31 +23,31 @@ def generatePrizeCards(deck):
 
 def doesHandContainBasicPokemon(hand):
     for card in hand:
-        if  "Basic" in card.subtypes:
+        if  "Basic" in card["subtypes"].split(","):
             return True
     return False
 
 def readableCard(card):
     output = {}
-    output["name"] = card.name
-    output["id"] = card.id
-    output["subtypes"] = card.subtypes
-    output["supertype"] = card.supertype
+    output["name"] = card["name"]
+    output["id"] = card["id"]
+    output["subtypes"] = card["subtypes"]
+    output["supertype"] = card["supertype"]
     return output
 
 # Get deck from text file and unpickle it
 unshuffledDeck = []
 deckfileName = sys.argv[1]
-inputFile = open(deckfileName, "r")
 
-inputLines = inputFile.readlines()
+deckObj = getDeckByName(deckfileName)
 
-for line in inputLines:
-    unshuffledDeck.append(jsonpickle.decode(line))
+for cardDeck in getCardDeckByDeckId(deckObj['id']):
+    for quantity in range(int(cardDeck['quantity'])):
+        unshuffledDeck.append(cardDeck)
 
 numIterations = sys.argv[2]
 
-workbook = xlsxwriter.Workbook(Path(deckfileName).stem+'_'+numIterations+'.xlsx')
+workbook = xlsxwriter.Workbook(Path(deckfileName).stem+'_'+numIterations+'_'+datetime.now().strftime("%d-%m-%Y")+'.xlsx')
 worksheet = workbook.add_worksheet()
 
 worksheet.write(0,0,"Hand 1")
