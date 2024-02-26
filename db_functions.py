@@ -113,3 +113,17 @@ def getCardDeckByDeckId(deckId):
         return res
     
     return None
+
+def deleteCardDeck(deckId):
+    cur = con.cursor()
+    sql = "DELETE FROM CARD_DECKS WHERE deck_id = '?'"
+    cardDeckValue = [
+        deckId
+    ]
+    try:  
+        cur.execute(sql, cardDeckValue)
+        con.commit()
+    except:
+        return False
+    return True
+    

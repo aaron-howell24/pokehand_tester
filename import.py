@@ -69,7 +69,6 @@ def getEnergyCardByNameAndNumber(name, setNum):
         insertCard(outputCard)
 
     return outputCard
-   
 
 filename = sys.argv[1]
 
@@ -128,6 +127,8 @@ for line in inputLines:
     
     
     # Insert into Card Deck
+    
+    deleteCardDeck(deckId)
     
     if isinstance(card, Card):
         insertCardIntoDeck(deckId, card.id, numOfCards)
